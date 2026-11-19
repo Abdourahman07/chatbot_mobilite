@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#213943">
+<title>Assistant – Portrait interactif de la Mobilité</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#23343d;background:#eef1f3}
+*{box-sizing:border-box}html{width:100%;height:100%}body{margin:0;padding:0;width:100%;min-height:100%}
+button,textarea{font:inherit}button{cursor:pointer}
+.shell{width:100%;max-width:470px;height:100vh;height:100dvh;max-height:850px;margin:auto;display:flex;flex-direction:column;background:white;overflow:hidden;box-shadow:0 8px 28px rgba(29,52,60,.13)}
+.head{background:#213943;color:#fff;display:flex;align-items:center;gap:12px;padding:14px 16px;flex-shrink:0}
+.drop{display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:#f0e222;color:#23343d;border-radius:10px;font-size:21px;flex-shrink:0}
+.head-title{flex:1;min-width:0}.head strong{display:block;font-size:14px;line-height:1.4}.head small{display:block;margin-top:3px;font-size:11px;color:#cfe1e4}
+.reset{background:transparent;color:#e7eeee;border:1px solid #6c848b;padding:7px 10px;border-radius:7px;font-size:12px;flex-shrink:0}
+.messages{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 15px;background:#f4f7f8;display:flex;flex-direction:column;gap:12px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.msg{max-width:93%;padding:12px 13px;border-radius:13px;font-size:13px;line-height:1.58;white-space:pre-wrap;overflow-wrap:anywhere}
+.bot{align-self:flex-start;background:#fff;border:1px solid #dce5e9;border-top-left-radius:3px}.user{align-self:flex-end;background:#f0e222;color:#1e2c34;border-top-right-radius:3px}
+.quick{display:flex;flex-wrap:wrap;gap:7px;padding:10px 12px;border-top:1px solid #e8ecee;background:#fff;flex-shrink:0;max-height:108px;overflow-y:auto}
+.quick button{border:1px solid #cddce2;border-radius:17px;background:#fff;color:#244050;padding:8px 11px;font-size:11px;font-weight:500;white-space:nowrap}.quick button:hover{background:#f5f0c5;border-color:#e8d92a}
+.entry{display:flex;align-items:flex-end;gap:8px;padding:10px;border-top:1px solid #e4eaed;background:#fff;flex-shrink:0}
+.entry textarea{flex:1;min-width:0;resize:none;min-height:44px;max-height:110px;padding:12px;border:1px solid #ccd7da;border-radius:9px;font-size:14px;line-height:1.4;outline:none}.entry textarea:focus{border-color:#849da6}
+.entry button{border:none;background:#f0e222;color:#1b262b;border-radius:9px;min-height:44px;padding:0 14px;font-size:13px;font-weight:bold;flex-shrink:0}.entry button:hover{background:#e2d619}
+.disclaimer{flex-shrink:0;background:#fff;color:#657983;text-align:center;font-size:10px;padding:0 10px 8px}.disclaimer a{color:#244050}
+@media(min-width:601px){body{padding:8px}.shell{border-radius:13px;height:calc(100vh - 16px);height:calc(100dvh - 16px)}}
+@media(max-width:600px){html,body{width:100%;height:100%;overflow:hidden}.shell{width:100%;max-width:none;height:100vh;height:100dvh;max-height:none;min-height:0;margin:0;border-radius:0;box-shadow:none}.head{padding:12px 13px;gap:10px}.messages{padding:13px 11px;gap:10px}.msg{max-width:92%;font-size:13px;padding:10px 11px}.quick{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;max-height:none;padding:9px 10px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}.quick button{flex:0 0 auto}.entry{padding:9px 10px}}
+@media(max-width:390px){.head{padding:10px;gap:8px}.drop{width:34px;height:34px;font-size:18px}.head strong{font-size:12px}.head small{font-size:10px}.reset{padding:6px 8px;font-size:11px}.msg{font-size:12.5px}.entry textarea{font-size:16px}.entry button{padding:0 11px}}
+@media(max-height:480px){.head{padding-top:8px;padding-bottom:8px}.drop{width:32px;height:32px}.messages{padding:9px 11px}.quick{padding:6px 10px}.entry{padding:6px 10px}}
+@media(max-width:600px){.head{padding-top:max(12px,env(safe-area-inset-top))}.entry{padding-bottom:max(10px,env(safe-area-inset-bottom))}}
+button:focus-visible,textarea:focus-visible{outline:2px solid #213943;outline-offset:2px}
+</style>
+</head>
+<body>
+<main class="shell" aria-label="Assistant du Portrait de la Mobilité">
+<header class="head"><span class="drop" aria-hidden="true">🚲</span><div class="head-title"><strong>Assistant du Portrait de la Mobilité</strong><small>Aide à la navigation et à l’utilisation du portrait</small></div><button class="reset" id="reset" type="button">Effacer</button></header>
+<section id="messages" class="messages" role="log" aria-live="polite" aria-label="Conversation"></section>
+<nav id="quick" class="quick" aria-label="Questions rapides"></nav>
+<form class="entry" id="form"><textarea id="question" rows="1" maxlength="600" required aria-label="Posez votre question" placeholder="Posez votre question…"></textarea><button type="submit">Envoyer</button></form>
+<div class="disclaimer">Assistant de navigation · <a href="https://geoportailmobilite-audrso.hub.arcgis.com/#home" target="_blank" rel="noopener noreferrer">Ouvrir le portrait mobilité</a></div>
+</main>
+<script>
+'use strict';
+const FAQ=[
+{title:'Utiliser les filtres',keys:['filtre','filtrer','filtrage','selection','selectionner','critere','recherche avancee'],answer:'Les filtres servent à limiter les éléments affichés sur une carte.\n\n1. Ouvrez la carte de votre choix.\n2. Repérez le panneau de filtres, s’il est présent.\n3. Choisissez le critère proposé : territoire (commune ou intercommunalité), catégorie d’équipement, type d’aménagement, ou autre champ disponible selon la carte.\n4. Sélectionnez une ou plusieurs valeurs si l’outil le permet.\n5. Effacez la sélection ou réinitialisez les filtres pour retrouver la vue complète.\n\nChaque carte dispose de ses propres filtres : tous ces critères ne sont pas forcément disponibles partout.'},
+{title:'Filtres territoriaux',keys:['commune','communes','intercommunalite','epci','capso','ccpl','territoire','territorial'],answer:'Pour cibler un territoire, recherchez un filtre « Commune », « Intercommunalité », « Territoire » ou un intitulé équivalent, selon la carte. Choisissez la valeur souhaitée.\n\nAttention : afficher une couche des limites communales ou intercommunales ne signifie pas nécessairement filtrer les autres données. Pour tout afficher de nouveau, utilisez l’option de réinitialisation disponible.'},
+{title:'Filtres thématiques',keys:['categorie','type','thematique','equipement','statut','annee','mode','valeur','date'],answer:'Certaines cartes proposent des critères propres à leur thématique (par exemple catégorie, type d’équipement, état, mode ou période, lorsque ces champs existent).\n\nOuvrez le filtre de la carte, choisissez le critère affiché, puis la ou les valeurs voulues. Si plusieurs filtres sont actifs, ils peuvent se cumuler et réduire le nombre d’objets visibles. Effacez-les pour revoir toutes les données.'},
+{title:'Afficher les couches',keys:['couche','couches','afficher','masquer','activer','desactiver','visibilite','superposer'],answer:'Sur une carte, ouvrez le panneau « Couches » lorsqu’il est disponible. Activez ou masquez les couches souhaitées, puis vérifiez la légende.\n\nLes limites communales et intercommunales peuvent servir de repères. Selon la carte, certaines couches sont fixes et ne possèdent pas de commande de visibilité.'},
+{title:'Table attributaire',keys:['attribut','attributaire','table','tableau','champs','colonnes','ligne','enregistrement','donnees'],answer:'La table attributaire présente les informations décrivant les objets géographiques. Si la carte possède un bouton « Attributs », « Table » ou équivalent, cliquez dessus pour consulter les lignes et les champs.\n\nVous pouvez aussi cliquer sur un objet de la carte pour ouvrir sa fiche descriptive. Les possibilités de tri, recherche et téléchargement dépendent des outils configurés sur cette carte.'},
+{title:'Comprendre une fiche',keys:['clic','cliquer','objet','popup','fenetre','fiche','identifier','information','details'],answer:'Cliquez sur un point, une ligne ou une zone de la carte. Si une fenêtre d’information est configurée, elle présente les attributs associés à cet objet. Si plusieurs objets se superposent, utilisez les commandes de navigation dans la fenêtre, lorsqu’elles sont proposées.'},
+{title:'Légende et symbologie',keys:['legende','symbole','couleur','signification','figur','representation'],answer:'La légende explique la signification des couleurs, points, lignes et autres symboles. Ouvrez l’outil « Légende » ou consultez le panneau de la carte. Chaque carte possède sa propre symbologie : ne supposez pas que la même couleur a partout la même signification.'},
+{title:'Naviguer sur la carte',keys:['zoom','zoomer','deplacer','navigation','recentrer','etendue','position','carte'],answer:'Utilisez la molette ou les commandes + / − pour zoomer, puis faites glisser la carte pour vous déplacer. Sur téléphone, utilisez les gestes tactiles. Le bouton de retour à l’étendue initiale, s’il est présent, permet de retrouver la vue de départ.'},
+{title:'Aménagements cyclables',keys:['amenagement','amenagements','piste','bande','cyclable','cyclables','itineraire'],answer:'Ouvrez la carte relative aux aménagements cyclables. Consultez la légende pour identifier les catégories de tracés et activez les couches de repère disponibles si nécessaire. Cliquez sur un tronçon pour connaître ses caractéristiques publiées et utilisez les filtres propres à cette carte lorsqu’ils sont proposés.'},
+{title:'Abris et stationnement vélo',keys:['abri','abris','stationnement','parking','arceau','support'],answer:'Dans la carte des abris ou du stationnement vélo, repérez les équipements grâce aux symboles. Cliquez sur un équipement pour afficher les informations disponibles. Vous pouvez également utiliser les filtres de cette carte, s’ils existent, pour affiner l’affichage.'},
+{title:'Vélopartage',keys:['velopartage','station','stations','location','libre service','velo partage'],answer:'La carte de vélopartage permet de consulter les stations ou équipements recensés. Zoomez sur le secteur souhaité, consultez la légende et cliquez sur une station pour voir ses attributs. Les données cartographiques ne garantissent pas une disponibilité de vélos en temps réel.'},
+{title:'Stratégies cyclables',keys:['strategie','strategies','schema','planification','plan velo'],answer:'Sur la carte des stratégies cyclables, consultez les territoires ou éléments représentés, puis cliquez sur l’objet qui vous intéresse pour afficher ses attributs. Utilisez les limites territoriales ou les filtres présents pour faciliter la lecture, selon les possibilités de la carte.'},
+{title:'Télécharger des données',keys:['export','exporter','telecharger','telechargement','csv','excel','pdf','imprimer','impression'],answer:'Lorsque le portrait propose un bouton de téléchargement, d’export ou d’impression, utilisez-le depuis la carte ou son panneau de données. Pour certaines ressources, un document PDF peut être proposé. Le format disponible dépend de chaque carte : l’absence d’un bouton signifie que cette fonction n’est pas proposée ici.'},
+{title:'Réinitialiser la carte',keys:['reinitialiser','retablir','effacer','supprimer filtre','tout afficher','zero','aucun resultat'],answer:'Si certains objets ont disparu, vérifiez d’abord les filtres actifs. Effacez les valeurs sélectionnées ou utilisez « Réinitialiser », si cette option est présente. Vérifiez ensuite que les couches sont visibles et revenez à l’étendue initiale de la carte.'},
+{title:'Carte vide ou erreur',keys:['erreur','bug','vide','blanc','charge','chargement','probleme','fonctionne','lent','impossible','affiche pas'],answer:'Si une carte semble vide :\n1. Réinitialisez les filtres.\n2. Vérifiez que les couches sont visibles.\n3. Revenez à l’étendue initiale.\n4. Actualisez la page et vérifiez votre connexion.\n5. Si le problème persiste, notez le nom de la carte et le message d’erreur pour le signaler à L’Agence.'},
+{title:'Utilisation sur mobile',keys:['mobile','telephone','smartphone','tablette','tactile'],answer:'Sur téléphone, utilisez deux doigts pour zoomer dans la carte et ouvrez les panneaux repliés pour accéder aux couches, à la légende ou aux filtres. Pour lire de grandes tables d’attributs, l’utilisation d’un ordinateur peut être plus confortable.'},
+{title:'Présentation du portrait',keys:['bonjour','salut','aide','presentation','objectif','portrait','possible','utilisation','comment utiliser'],answer:'Bienvenue dans le portrait interactif de la mobilité de L’Agence ! Je vous guide pour consulter les différentes cartes, afficher les couches, utiliser les filtres territoriaux ou thématiques, lire les attributs, comprendre la légende et résoudre les difficultés d’affichage. Choisissez une suggestion ou décrivez votre besoin.'}
+];
+const quick=['Utiliser les filtres','Afficher les couches','Table attributaire','Légende','Réinitialiser'];
+const messages=document.getElementById('messages'),quickNav=document.getElementById('quick'),input=document.getElementById('question');
+function norm(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()}
+function addMessage(s,kind){const div=document.createElement('div');div.className='msg '+kind;div.textContent=s;messages.appendChild(div);messages.scrollTop=messages.scrollHeight}
+function respond(q){const s=norm(q),words=s.split(' ');let best=null,max=0;for(const e of FAQ){let score=0,t=norm(e.title);if(s===t)score+=20;else if(s.includes(t)&&t.length>7)score+=8;for(const k0 of e.keys){const k=norm(k0);if(words.includes(k))score+=k.length>=5?4:2;else if(k.length>5&&s.includes(k))score+=2}if(score>max){best=e;max=score}}return max>=2?best.answer:'Je peux vous aider pour les couches, les filtres, les attributs, la légende et les outils de navigation. Précisez votre difficulté ou choisissez une question rapide. Les options varient selon les cartes.'}
+function ask(q){q=q.trim();if(!q)return;addMessage(q,'user');addMessage(respond(q),'bot')}
+for(const q of quick){const b=document.createElement('button');b.type='button';b.textContent=q;b.addEventListener('click',()=>ask(q));quickNav.appendChild(b)}
+document.getElementById('form').addEventListener('submit',e=>{e.preventDefault();const q=input.value;input.value='';input.style.height='auto';ask(q);input.focus()});
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();document.getElementById('form').requestSubmit()}});
+input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,110)+'px'});
+function intro(){addMessage('Bonjour 👋 Je suis l’assistant du Portrait interactif de la Mobilité de L’Agence. Je peux vous guider dans l’utilisation des cartes, des couches, des filtres disponibles, de la légende et des tables attributaires.\n\nComment puis-je vous aider ?','bot')}
+document.getElementById('reset').addEventListener('click',()=>{messages.replaceChildren();input.value='';intro();input.focus()});
+intro();
+</script>
+</body>
+</html>
